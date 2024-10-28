@@ -106,7 +106,7 @@ w:Toggle("วิ่งเร็ว 80%", function(v)
         local humanoid = character:WaitForChild("Humanoid")
 
         local currentWalkSpeed = humanoid.WalkSpeed
-        local newWalkSpeed = currentWalkSpeed * 1.8
+        local newWalkSpeed = currentWalkSpeed * 3.8
         humanoid.WalkSpeed = newWalkSpeed
         
     else
