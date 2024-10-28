@@ -1,6 +1,6 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/lime"))()
 
-local w = Library:Window("PNP Hub")
+local w = Library:Window("PNP_HUB V6.PRO")
 
 w:Button("บล็อกวาป", function()
     print("Printed")
