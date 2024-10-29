@@ -1,0 +1,32 @@
+-- กำหนด User ID ที่อนุญาตให้เล่น
+local allowedUserIds = {
+    4064084423,  -- User ID ของคุณ
+    123456789,   -- User ID ของผู้เล่นที่อนุญาต
+    987654321,   -- ผู้เล่นที่อนุญาตคนที่ 2
+    112233445,   -- ผู้เล่นที่อนุญาตคนที่ 3
+    223344556,   -- ผู้เล่นที่อนุญาตคนที่ 4
+    334455667,   -- ผู้เล่นที่อนุญาตคนที่ 5
+    445566778,   -- ผู้เล่นที่อนุญาตคนที่ 6
+    556677889,   -- ผู้เล่นที่อนุญาตคนที่ 7
+    667788990    -- ผู้เล่นที่อนุญาตคนที่ 8
+}
+
+-- ฟังก์ชันตรวจสอบ User ID
+local function isUserAllowed(userId)
+    for _, id in pairs(allowedUserIds) do
+        if id == userId then
+            return true
+        end
+    end
+    return false
+end
+
+-- ตรวจสอบ User ID ของผู้เล่น
+local player = game.Players.LocalPlayer
+if isUserAllowed(player.UserId) then
+    -- เริ่มต้นสคริปต์เมื่อ User ID ได้รับอนุญาต
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Script-dot/PNP/refs/heads/main/PNPEXE", true))()
+else
+    -- แสดงข้อความเมื่อ User ID ไม่ได้รับอนุญาต
+    warn("คุณไม่มีสิทธิ์เข้าถึงสคริปต์นี้")
+end
