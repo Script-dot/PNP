@@ -1,3 +1,29 @@
+local allowedUserIds = {
+    4064084423, -- Your user ID
+    12345678,   -- Replace with other actual user IDs
+    23456789,
+    34567890,
+    45678901
+}
+
+local playerId = game.Players.LocalPlayer.UserId
+
+-- Function to check if the player is allowed
+local function isPlayerAllowed()
+    for _, id in ipairs(allowedUserIds) do
+        if id == playerId then
+            return true
+        end
+    end
+    return false
+end
+
+-- Check if the player is allowed to use the script
+if not isPlayerAllowed() then
+    print("คุณไม่มีสิทธิ์เข้าถึงฟังก์ชันนี้") -- "You do not have permission to access this function"
+    return
+end
+
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/lime"))()
 
 local w = Library:Window("PNP_HUB V6.PRO")
