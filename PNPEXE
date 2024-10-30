@@ -58,7 +58,7 @@ local FOVring = Drawing.new("Circle")
 FOVring.Visible = false -- ล่องหน
 FOVring.Thickness = 2
 FOVring.Color = Color3.fromRGB(128, 0, 128)
-FOVring.Filled = true
+FOVring.Filled = false
 FOVring.Radius = fov
 FOVring.Position = Cam.ViewportSize / 2
 
@@ -108,7 +108,7 @@ end
 
 w:Toggle("ล็อกเป้า", function(v)
     isAiming = v
-    FOVring.Visible = false  -- ซ่อนวง FOV
+    FOVring.Visible = true  -- ซ่อนวง FOV
 
     if v then
         RunService:BindToRenderStep("FOVUpdate", Enum.RenderPriority.Camera.Value, function()
