@@ -122,26 +122,17 @@ w:Toggle("ล็อกเป้า", function(v)
     end
 end)
 
-w:Toggle("วิ่งเร็ว 80%", function(v)
+w:Toggle("วิ่งเร็ว 50", function(v)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+
     if v then
         print("ฟังก์ชันที่สอง เปิดใช้งาน")
-        
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoid = character:WaitForChild("Humanoid")
-
-        local currentWalkSpeed = humanoid.WalkSpeed
-        local newWalkSpeed = currentWalkSpeed * 3.8
-        humanoid.WalkSpeed = newWalkSpeed
-        
+        humanoid.WalkSpeed = 50  -- กำหนดความเร็วถาวรเป็น 50
     else
         print("ฟังก์ชันที่สอง ปิดใช้งาน")
-        
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoid = character:WaitForChild("Humanoid")
-
-        humanoid.WalkSpeed = humanoid.WalkSpeed / 2.8
+        humanoid.WalkSpeed = 16  -- ความเร็วเริ่มต้นปกติ (16)
     end
 end)
 
