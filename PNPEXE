@@ -55,7 +55,7 @@ local Players = game:GetService("Players")
 local Cam = game.Workspace.CurrentCamera
 
 local FOVring = Drawing.new("Circle")
-FOVring.Visible = false -- ล่องหน
+FOVring.Visible = true -- ล่องหน
 FOVring.Thickness = 2
 FOVring.Color = Color3.fromRGB(128, 0, 128)
 FOVring.Filled = false
@@ -123,14 +123,14 @@ w:Toggle("ล็อกเป้า", function(v)
     end
 end)
 
-w:Toggle("วิ่งเร็ว 50", function(v)
+w:Toggle("วิ่งเร็ว 100", function(v)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoid = character:WaitForChild("Humanoid")
 
     if v then
         print("ฟังก์ชันที่สอง เปิดใช้งาน")
-        humanoid.WalkSpeed = 50  -- กำหนดความเร็วถาวรเป็น 50
+        humanoid.WalkSpeed = 100  -- กำหนดความเร็วถาวรเป็น 50
     else
         print("ฟังก์ชันที่สอง ปิดใช้งาน")
         humanoid.WalkSpeed = 16  -- ความเร็วเริ่มต้นปกติ (16)
