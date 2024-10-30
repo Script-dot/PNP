@@ -1,32 +1,245 @@
--- กำหนด User ID ที่อนุญาตให้เล่น
+function ShowNotification(String)
+    game:GetService("StarterGui"):SetCore('SendNotification', {
+        Title = 'PNP_HUB V6.PRO',
+        Text = String,
+        Duration = 5
+    })
+end
+
+ShowNotification("ห้านแจกต่อแจกไปก็ไม่มีใครใช้ได้")
+
 local allowedUserIds = {
-    4064084423,  -- User ID ของคุณ
-    123456789,   -- User ID ของผู้เล่นที่อนุญาต
-    987654321,   -- ผู้เล่นที่อนุญาตคนที่ 2
-    112233445,   -- ผู้เล่นที่อนุญาตคนที่ 3
-    223344556,   -- ผู้เล่นที่อนุญาตคนที่ 4
-    334455667,   -- ผู้เล่นที่อนุญาตคนที่ 5
-    445566778,   -- ผู้เล่นที่อนุญาตคนที่ 6
-    556677889,   -- ผู้เล่นที่อนุญาตคนที่ 7
-    667788990    -- ผู้เล่นที่อนุญาตคนที่ 8
+    4064084423,
+    4194975639,
+    7391842480,
+    34567890,
+    45678901,
+    00000000
 }
 
--- ฟังก์ชันตรวจสอบ User ID
-local function isUserAllowed(userId)
-    for _, id in pairs(allowedUserIds) do
-        if id == userId then
+local playerId = game.Players.LocalPlayer.UserId
+
+local function isPlayerAllowed()
+    for _, id in ipairs(allowedUserIds) do
+        if id == playerId then
             return true
         end
     end
     return false
 end
 
--- ตรวจสอบ User ID ของผู้เล่น
-local player = game.Players.LocalPlayer
-if isUserAllowed(player.UserId) then
-    -- เริ่มต้นสคริปต์เมื่อ User ID ได้รับอนุญาต
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Script-dot/PNP/refs/heads/main/PNPEXE", true))()
-else
-    -- แสดงข้อความเมื่อ User ID ไม่ได้รับอนุญาต
-    warn("คุณไม่มีสิทธิ์เข้าถึงสคริปต์นี้")
+if not isPlayerAllowed() then
+    ShowNotification("คุณไม่มีสิทธิ์เข้าถึงฟังก์ชันนี้")
+    return
 end
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/lime"))()
+
+local w = Library:Window("PNP_HUB V6.PRO")
+
+w:Button("บล็อกวาป", function()
+    print("Printed")
+
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    local tool = Instance.new("Tool")
+    
+    tool.RequiresHandle = false
+    tool.Name = "บล็อกวาป"
+    
+    tool.Activated:Connect(function()
+        local pos = mouse.Hit + Vector3.new(0, 2.5, 0)
+        pos = CFrame.new(pos.X, pos.Y, pos.Z)
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos
+    end)
+    
+    tool.Parent = game.Players.LocalPlayer.Backpack
+end)
+
+local FOVring
+w:Toggle("ล็อกเป้า", function(v)
+    local fov = 50
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local Players = game:GetService("Players")
+    local Cam = game.Workspace.CurrentCamera
+
+    if v then
+        FOVring = Drawing.new("Circle")
+        FOVring.Thickness = 2
+        FOVring.Color = Color3.fromRGB(128, 0, 128)
+        FOVring.Filled = false
+        FOVring.Radius = fov
+        FOVring.Position = Cam.ViewportSize / 2
+        FOVring.Visible = true
+
+        local function updateDrawings()
+            local camViewportSize = Cam.ViewportSize
+            FOVring.Position = camViewportSize / 2
+        end
+
+        local function onKeyDown(input)
+            if input.KeyCode == Enum.KeyCode.Delete then
+                RunService:UnbindFromRenderStep("FOVUpdate")
+                FOVring:Remove()
+            end
+        end
+
+        UserInputService.InputBegan:Connect(onKeyDown)
+
+        local function lookAt(target)
+            local lookVector = (target - Cam.CFrame.Position).unit
+            local newCFrame = CFrame.new(Cam.CFrame.Position, Cam.CFrame.Position + lookVector)
+            Cam.CFrame = newCFrame
+        end
+
+        local function getClosestPlayerInFOV(trg_part)
+            local nearest = nil
+            local last = math.huge
+            local playerMousePos = Cam.ViewportSize / 2
+
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer then
+                    local part = player.Character and player.Character:FindFirstChild(trg_part)
+                    if part then
+                        local ePos, isVisible = Cam:WorldToViewportPoint(part.Position)
+                        local distance = (Vector2.new(ePos.x, ePos.y) - playerMousePos).Magnitude
+
+                        if distance < last and isVisible and distance < fov then
+                            last = distance
+                            nearest = player
+                        end
+                    end
+                end
+            end
+
+            return nearest
+        end
+
+        RunService:BindToRenderStep("FOVUpdate", Enum.RenderPriority.Camera.Value, function()
+            updateDrawings()
+            local closest = getClosestPlayerInFOV("Head")
+            if closest and closest.Character:FindFirstChild("Head") then
+                lookAt(closest.Character.Head.Position)
+            end
+        end)
+    else
+        if FOVring then
+            FOVring.Visible = false
+            FOVring:Remove()
+            FOVring = nil
+        end
+        RunService:UnbindFromRenderStep("FOVUpdate")
+    end
+end)
+
+w:Toggle("วิ่งเร็ว 100", function(v)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+
+    if v then
+        print("ฟังก์ชันที่สอง เปิดใช้งาน")
+        humanoid.WalkSpeed = 100
+    else
+        print("ฟังก์ชันที่สอง ปิดใช้งาน")
+        humanoid.WalkSpeed = 16
+    end
+end)
+
+local fovConnection
+w:Toggle("มุมมองแบบกว้าง", function(v)
+    if v then
+        print("ฟังก์ชันที่สาม เปิดใช้งาน")
+        
+        local camera = workspace.CurrentCamera
+        
+        local function onRenderStep()
+            camera.FieldOfView = 800
+        end
+
+        fovConnection = game:GetService("RunService").RenderStepped:Connect(onRenderStep)
+
+    else
+        print("ฟังก์ชันที่สาม ปิดใช้งาน")
+
+        local camera = workspace.CurrentCamera
+        camera.FieldOfView = 70
+
+        if fovConnection then
+            fovConnection:Disconnect()
+            fovConnection = nil
+        end
+    end
+end)
+
+w:Toggle("กระโดดสูงไม่บอก%🤫", function(v)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+
+    if v then
+        print("ฟังก์ชันที่สี่ เปิดใช้งาน")
+        humanoid.JumpPower = humanoid.JumpPower * 2
+    else
+        print("ฟังก์ชันที่สี่ ปิดใช้งาน")
+        humanoid.JumpPower = humanoid.JumpPower / 2
+    end
+end)
+
+local noclipConnection
+w:Toggle("No Clip", function(v)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+
+    if v then
+        print("ฟังก์ชันที่ห้า เปิดใช้งาน - No Clip")
+
+        noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end)
+
+    else
+        print("ฟังก์ชันที่ห้า ปิดใช้งาน - No Clip")
+
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and not part.CanCollide then
+                part.CanCollide = true
+            end
+        end
+    end
+end)
+
+local originalJumpPower
+w:Toggle("กระโดดต่อเนื้อง", function(v)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    local userInputService = game:GetService("UserInputService")
+
+    if v then
+        print("กระโดดต่อเนื้อง เปิดใช้งาน")
+
+        originalJumpPower = humanoid.JumpPower
+        local jumpHeight = 50
+        
+        userInputService.JumpRequest:Connect(function()
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            humanoid.JumpPower = jumpHeight
+        end)
+    else
+        print("กระโดดต่อเนื้อง ปิดใช้งาน")
+
+        if originalJumpPower then
+            humanoid.JumpPower = originalJumpPower
+        end
+    end
+end)
