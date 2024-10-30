@@ -1,6 +1,6 @@
 local allowedUserIds = {
     4064084423, -- Your user ID
-    4194975639,   -- Replace with other actual user IDs
+    4194975639,
     7391842480,
     34567890,
     45678901,
@@ -47,82 +47,87 @@ w:Button("บล็อกวาป", function()
     tool.Parent = game.Players.LocalPlayer.Backpack
 end)
 
-local isAiming = false
-local fov = 50
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Cam = game.Workspace.CurrentCamera
-
-local FOVring = Drawing.new("Circle")
-FOVring.Visible = false -- ล่องหน
-FOVring.Thickness = 2
-FOVring.Color = Color3.fromRGB(128, 0, 128)
-FOVring.Filled = false
-FOVring.Radius = fov
-FOVring.Position = Cam.ViewportSize / 2
-
-local function updateDrawings()
-    local camViewportSize = Cam.ViewportSize
-    FOVring.Position = camViewportSize / 2
-end
-
-local function onKeyDown(input)
-    if input.KeyCode == Enum.KeyCode.Delete then
-        RunService:UnbindFromRenderStep("FOVUpdate")
-        FOVring:Remove()
-        isAiming = false
-    end
-end
-
-UserInputService.InputBegan:Connect(onKeyDown)
-
-local function lookAt(target)
-    local lookVector = (target - Cam.CFrame.Position).unit
-    local newCFrame = CFrame.new(Cam.CFrame.Position, Cam.CFrame.Position + lookVector)
-    Cam.CFrame = newCFrame
-end
-
-local function getClosestPlayerInFOV(trg_part)
-    local nearest = nil
-    local last = math.huge
-    local playerMousePos = Cam.ViewportSize / 2
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            local part = player.Character and player.Character:FindFirstChild(trg_part)
-            if part then
-                local ePos, isVisible = Cam:WorldToViewportPoint(part.Position)
-                local distance = (Vector2.new(ePos.x, ePos.y) - playerMousePos).Magnitude
-
-                if distance < last and isVisible and distance < fov then
-                    last = distance
-                    nearest = player
-                end
-            end
-        end
-    end
-
-    return nearest
-end
-
+-- Lock Aim Button
+local FOVring
 w:Toggle("ล็อกเป้า", function(v)
-    isAiming = v
-    FOVring.Visible = true  -- ซ่อนวง FOV
+    local fov = 50
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local Players = game:GetService("Players")
+    local Cam = game.Workspace.CurrentCamera
 
     if v then
+        -- Create the FOV ring when the toggle is enabled
+        FOVring = Drawing.new("Circle")
+        FOVring.Thickness = 2
+        FOVring.Color = Color3.fromRGB(128, 0, 128) -- Purple color
+        FOVring.Filled = false
+        FOVring.Radius = fov
+        FOVring.Position = Cam.ViewportSize / 2
+        FOVring.Visible = true  -- Show the FOV ring
+
+        local function updateDrawings()
+            local camViewportSize = Cam.ViewportSize
+            FOVring.Position = camViewportSize / 2
+        end
+
+        local function onKeyDown(input)
+            if input.KeyCode == Enum.KeyCode.Delete then
+                RunService:UnbindFromRenderStep("FOVUpdate")
+                FOVring:Remove()
+            end
+        end
+
+        UserInputService.InputBegan:Connect(onKeyDown)
+
+        local function lookAt(target)
+            local lookVector = (target - Cam.CFrame.Position).unit
+            local newCFrame = CFrame.new(Cam.CFrame.Position, Cam.CFrame.Position + lookVector)
+            Cam.CFrame = newCFrame
+        end
+
+        local function getClosestPlayerInFOV(trg_part)
+            local nearest = nil
+            local last = math.huge
+            local playerMousePos = Cam.ViewportSize / 2
+
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer then
+                    local part = player.Character and player.Character:FindFirstChild(trg_part)
+                    if part then
+                        local ePos, isVisible = Cam:WorldToViewportPoint(part.Position)
+                        local distance = (Vector2.new(ePos.x, ePos.y) - playerMousePos).Magnitude
+
+                        if distance < last and isVisible and distance < fov then
+                            last = distance
+                            nearest = player
+                        end
+                    end
+                end
+            end
+
+            return nearest
+        end
+
         RunService:BindToRenderStep("FOVUpdate", Enum.RenderPriority.Camera.Value, function()
-            updateDrawings()  -- ยังคงอัปเดตตำแหน่ง FOVring แต่ไม่แสดง
+            updateDrawings()
             local closest = getClosestPlayerInFOV("Head")
             if closest and closest.Character:FindFirstChild("Head") then
                 lookAt(closest.Character.Head.Position)
             end
         end)
     else
+        -- Hide the FOV ring and clean up when the toggle is disabled
+        if FOVring then
+            FOVring.Visible = false  -- Hide the FOV ring
+            FOVring:Remove()         -- Remove the FOV ring
+            FOVring = nil            -- Clear the reference
+        end
         RunService:UnbindFromRenderStep("FOVUpdate")
     end
 end)
 
+-- Speed Boost Button
 w:Toggle("วิ่งเร็ว 100", function(v)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -130,13 +135,14 @@ w:Toggle("วิ่งเร็ว 100", function(v)
 
     if v then
         print("ฟังก์ชันที่สอง เปิดใช้งาน")
-        humanoid.WalkSpeed = 100  -- กำหนดความเร็วถาวรเป็น 50
+        humanoid.WalkSpeed = 100  -- กำหนดความเร็วถาวรเป็น 100
     else
         print("ฟังก์ชันที่สอง ปิดใช้งาน")
         humanoid.WalkSpeed = 16  -- ความเร็วเริ่มต้นปกติ (16)
     end
 end)
 
+-- Wide View Button
 local fovConnection
 w:Toggle("มุมมองแบบกว้าง", function(v)
     if v then
@@ -163,6 +169,7 @@ w:Toggle("มุมมองแบบกว้าง", function(v)
     end
 end)
 
+-- High Jump Button
 w:Toggle("กระโดดสูงไม่บอก%🤫", function(v)
     local player = game.Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
@@ -177,6 +184,7 @@ w:Toggle("กระโดดสูงไม่บอก%🤫", function(v)
     end
 end)
 
+-- No Clip Button
 local noclipConnection
 w:Toggle("No Clip", function(v)
     local player = game.Players.LocalPlayer
