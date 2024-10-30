@@ -216,3 +216,12 @@ w:Toggle("No Clip", function(v)
         end
     end
 end)
+
+-- New Toggle Button
+w:Toggle("กำลังอัพเดท", function(v)
+    if v then
+        print("กำลังอัพเดท เปิดใช้งาน")
+    else
+        print("กำลังอัพเดท ปิดใช้งาน")
+    end
+end)
