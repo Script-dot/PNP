@@ -1,9 +1,10 @@
 local allowedUserIds = {
     4064084423, -- Your user ID
     4194975639,   -- Replace with other actual user IDs
-    23456789,
+    7391842480,
     34567890,
-    45678901
+    45678901,
+    00000000
 }
 
 local playerId = game.Players.LocalPlayer.UserId
