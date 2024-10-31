@@ -1,169 +1,209 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/lime"))()
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "PNP_HUB V6.PRO", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
 
-local w = Library:Window("PNP_HUB V6. PRO")
+local Tab = Window:MakeTab({
+    Name = "main",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+local Section = Tab:AddSection({
+    Name = "เมนูฟาร์ม"
+})
 
-local Enabled = false
-local Rod = false
-local Progress = false
-local Finished = false
-local AutoSellEnabled = false  -- ตัวแปรสำหรับการเปิด/ปิด Auto Sell
-
--- ฟังก์ชันแสดงการแจ้งเตือน
-function ShowNotification(String)
-    game:GetService('StarterGui'):SetCore('SendNotification', {
-        Title = 'Alert!',
-        Text = String,
-        Duration = 2
+local function ShowNotification(message)
+    OrionLib:MakeNotification({
+        Name = "Notification",
+        Content = message,
+        Image = "rbxassetid://4483345998",
+        Time = 5
     })
 end
 
--- Toggle สำหรับ Auto Shake
-w:Toggle("Auto Shake", function(v)
-    Enabled = v
-    local Players = game:GetService('Players')
-    local CoreGui = game:GetService('StarterGui')
-    local ReplicatedStorage = game:GetService('ReplicatedStorage')
-    local VirtualInputManager = game:GetService('VirtualInputManager')
-    local GuiService = game:GetService('GuiService')
+local Enabled = false
+local Rod
+local Progress = false
+local Finished = false
 
-    local LocalPlayer = Players.LocalPlayer
+Tab:AddToggle({
+    Name = "Enable Auto Farm",
+    Default = false,
+    Callback = function(v)
+        Enabled = v
+        local Players = game:GetService('Players')
+        local GuiService = game:GetService('GuiService')
+        local LocalPlayer = Players.LocalPlayer
+        local VirtualInputManager = game:GetService('VirtualInputManager')
+        local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
-    if not Enabled then
-        Finished = false
-        Progress = false
-        GuiService.SelectedObject = nil
-        
-        if Rod then
-            Rod.events.reset:FireServer()
-        end
-        
-        ShowNotification("Auto Farm Disabled")
-        return
-    end
-    
-    ShowNotification("Auto Farm Enabled")
-
-    LocalPlayer.Character.ChildAdded:Connect(function(Child)
-        if Child:IsA('Tool') and Child.Name:lower():find('rod') then
-            Rod = Child
-        end
-    end)
-
-    LocalPlayer.Character.ChildRemoved:Connect(function(Child)
-        if Child == Rod then
+        if not Enabled then
             Finished = false
             Progress = false
             GuiService.SelectedObject = nil
-            Rod = nil
-        end
-    end)
-
-    LocalPlayer.PlayerGui.DescendantAdded:Connect(function(Descendant)
-        if Descendant.Name == 'button' and Descendant.Parent.Name == 'safezone' then
-            task.wait(0.1)
-            GuiService.SelectedObject = Descendant
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-        elseif Descendant.Name == 'playerbar' and Descendant.Parent.Name == 'bar' then
-            Finished = true
-            Descendant:GetPropertyChangedSignal('Position'):Wait()
-            ReplicatedStorage.events.reelfinished:FireServer(100, true)
-        end
-    end)
-
-    LocalPlayer.PlayerGui.DescendantRemoving:Connect(function(Descendant)
-        if Descendant.Name == 'reel' then
-            Finished = false
-            Progress = false
-        end
-    end)
-
-    coroutine.wrap(function()
-        while Enabled do
-            if not Progress and Rod then
-                Progress = true
-                task.wait(0.5)
+            
+            if Rod then
                 Rod.events.reset:FireServer()
-                Rod.events.cast:FireServer(100.5)
             end
-            task.wait()
+            
+            ShowNotification("Auto Farm Disabled")
+            return
         end
-    end)()
+        
+        ShowNotification("Auto Farm Enabled")
 
-    local NewRod = LocalPlayer.Character:FindFirstChildWhichIsA('Tool')
+        LocalPlayer.Character.ChildAdded:Connect(function(Child)
+            if Child:IsA('Tool') and Child.Name:lower():find('rod') then
+                Rod = Child
+            end
+        end)
 
-    if NewRod and NewRod.Name:lower():find('rod') then
-        Rod = NewRod
-    end
-end)
+        LocalPlayer.Character.ChildRemoved:Connect(function(Child)
+            if Child == Rod then
+                Finished = false
+                Progress = false
+                GuiService.SelectedObject = nil
+                Rod = nil
+            end
+        end)
 
--- Toggle สำหรับ Auto Cast
-w:Toggle("Auto Cast", function(v)
-    AutoSellEnabled = v
-    if AutoSellEnabled then
-        ShowNotification("Auto Cast Enabled")
+        LocalPlayer.PlayerGui.DescendantAdded:Connect(function(Descendant)
+            if Descendant.Name == 'button' and Descendant.Parent.Name == 'safezone' then
+                task.wait(0.1)
+                GuiService.SelectedObject = Descendant
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+            elseif Descendant.Name == 'playerbar' and Descendant.Parent.Name == 'bar' then
+                Finished = true
+                Descendant:GetPropertyChangedSignal('Position'):Wait()
+                ReplicatedStorage.events.reelfinished:FireServer(100, true)
+            end
+        end)
 
-        local args = {
-            [1] = 92.59999999999997,
-            [2] = 1
-        }
+        LocalPlayer.PlayerGui.DescendantRemoving:Connect(function(Descendant)
+            if Descendant.Name == 'reel' then
+                Finished = false
+                Progress = false
+            end
+        end)
 
-        -- Start a loop to continuously cast when Auto Cast is enabled
         coroutine.wrap(function()
-            while AutoSellEnabled do
-                local localPlayer = game:GetService("Players").LocalPlayer
-                local rod = localPlayer.Character:FindFirstChild("Haunted Rod")
-
-                if rod and rod:IsA("Tool") then
-                    rod.events.cast:FireServer(unpack(args))
+            while Enabled do
+                if not Progress and Rod then
+                    Progress = true
+                    task.wait(0.5)
+                    Rod.events.reset:FireServer()
+                    Rod.events.cast:FireServer(100.5)
                 end
-                
-                task.wait(1) -- Adjust the wait time as necessary to avoid spamming the cast command
+                task.wait()
             end
         end)()
-    else
-        ShowNotification("Auto Cast Disabled")
-    end
-end)
 
--- เพิ่มปุ่มใหม่ใน GUI สำหรับขายปลาทั้งหมด
-w:Button("ขายปลาทั้งหมด", function()
-    print("ขายปลาทั้งหมด ถูกกด!")
-    ShowNotification("ขายปลาทั้งหมด ถูกกด!")
-    
-    -- เรียกใช้คำสั่งขายปลาทั้งหมด
-    local merchant = workspace.world.npcs:FindFirstChild("Marc Merchant")
-    if merchant and merchant:FindFirstChild("merchant") and merchant.merchant:FindFirstChild("sellall") then
-        local success, errorMessage = pcall(function()
-            merchant.merchant.sellall:InvokeServer()
-        end)
-        if success then
-            ShowNotification("ขายปลาทั้งหมดเรียบร้อยแล้ว!")
-        else
-            ShowNotification("เกิดข้อผิดพลาดในการขาย: " .. errorMessage)
+        local NewRod = LocalPlayer.Character:FindFirstChildWhichIsA('Tool')
+        if NewRod and NewRod.Name:lower():find('rod') then
+            Rod = NewRod
         end
-    else
-        ShowNotification("ไม่พบ Marc Merchant หรือคำสั่งขาย!")
-    end
-end)
+    end    
+})
 
--- เพิ่มปุ่มใหม่อีกปุ่มสำหรับขายปลาตัวเดียว
-w:Button("ขายปลาตัวเดียวต้องเลือกปลาก่อน", function()
-    print("ขายปลาตัวเดียวถูกกด!")
-    ShowNotification("ขายปลาตัวเดียวถูกกด!")
-    
-    -- ตรวจสอบว่ามี Marc Merchant และคำสั่งขายอยู่หรือไม่
-    local merchant = workspace.world.npcs:FindFirstChild("Marc Merchant")
-    if merchant and merchant:FindFirstChild("merchant") and merchant.merchant:FindFirstChild("sell") then
-        local success, errorMessage = pcall(function()
-            merchant.merchant.sell:InvokeServer()
-        end)
-        if success then
-            ShowNotification("ขายปลาตัวเดียวเรียบร้อยแล้ว!")
+Tab:AddButton({
+    Name = "ขายปลาทั้งหมด",
+    Callback = function()
+        workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sellall:InvokeServer()
+    end    
+})
+
+local CastEnabled = false
+
+Tab:AddToggle({
+    Name = "หย่อนเหยื่อ",
+    Default = false,
+    Callback = function(v)
+        CastEnabled = v
+        
+        if CastEnabled then
+            ShowNotification("หย่อนเหยื่อเปิดใช้งาน")
+            
+            coroutine.wrap(function()
+                while CastEnabled do
+                    local args = {
+                        [1] = 92.59999999999997,
+                        [2] = 1
+                    }
+
+                    game:GetService("Players").LocalPlayer.Character:FindFirstChild("Haunted Rod").events.cast:FireServer(unpack(args))
+                    task.wait(1) -- รอ 1 วินาทีก่อนจะหย่อนเหยื่ออีกครั้ง
+                end
+            end)()
         else
-            ShowNotification("เกิดข้อผิดพลาดในการขาย: " .. errorMessage)
+            ShowNotification("หย่อนเหยื่อปิดใช้งาน")
         end
-    else
-        ShowNotification("ไม่พบ Marc Merchant หรือคำสั่งขาย!")
-    end
-end)
+    end    
+})
+
+Tab:AddButton({
+    Name = "ขายปลาหนึ่งตัว",
+    Callback = function()
+        workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sell:InvokeServer()
+    end    
+})
+
+local WarpTab = Window:MakeTab({
+    Name = "วาร์ปเกาะ",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+WarpTab:AddButton({
+    Name = "Moosewood",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(500.488434, 147.40181, 219.991364, -0.564704418, 0, -0.825293183, 0, 1, 0, 0.825293183, 0, -0.564704418)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "ที่เอ็นชาตเบ็ด",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(1294.57568, -807.365051, -307.565216, 0.0331695676, 0, 0.99944973, 0, 1, 0, -0.99944973, 0, 0.0331695676)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "Roslit",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(-1510.43311, 129.750626, 615.421875, -1, 0, 0, 0, 1, 0, 0, 0, -1)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "Snowcap",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(2671.10767, 148.350555, 2388.95117, -0.464032531, -0.044061318, -0.884721994, -0.0204825327, 0.999028802, -0.0390110984, 0.885581613, 1.89337879e-05, -0.464484453)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "Sunstone",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(-902.682922, 136.266068, -1128.6886, 0.939700544, -0, -0.341998369, 0, 1, -0, 0.341998369, 0, 0.939700544)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "ถ้ำใต้น้ำวน",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(-78.5218506, -482.720367, 1040.32788, -1, 0, 0, 0, 1, 0, 0, 0, -1)}):Play()
+    end    
+})
+
+OrionLib:Init()
