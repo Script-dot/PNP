@@ -134,15 +134,36 @@ w:Button("ขายปลาทั้งหมด", function()
     -- เรียกใช้คำสั่งขายปลาทั้งหมด
     local merchant = workspace.world.npcs:FindFirstChild("Marc Merchant")
     if merchant and merchant:FindFirstChild("merchant") and merchant.merchant:FindFirstChild("sellall") then
-        merchant.merchant.sellall:InvokeServer()
-        ShowNotification("ขายปลาทั้งหมดเรียบร้อยแล้ว!")
+        local success, errorMessage = pcall(function()
+            merchant.merchant.sellall:InvokeServer()
+        end)
+        if success then
+            ShowNotification("ขายปลาทั้งหมดเรียบร้อยแล้ว!")
+        else
+            ShowNotification("เกิดข้อผิดพลาดในการขาย: " .. errorMessage)
+        end
     else
         ShowNotification("ไม่พบ Marc Merchant หรือคำสั่งขาย!")
     end
 end)
 
--- เพิ่มปุ่มใหม่อีกปุ่ม
-w:Button("Another Button", function()
-    print("Another Button Pressed!")
-    ShowNotification("Another Button Pressed!")
+-- เพิ่มปุ่มใหม่อีกปุ่มสำหรับขายปลาตัวเดียว
+w:Button("ขายปลาตัวเดียวต้องเลือกปลาก่อน", function()
+    print("ขายปลาตัวเดียวถูกกด!")
+    ShowNotification("ขายปลาตัวเดียวถูกกด!")
+    
+    -- ตรวจสอบว่ามี Marc Merchant และคำสั่งขายอยู่หรือไม่
+    local merchant = workspace.world.npcs:FindFirstChild("Marc Merchant")
+    if merchant and merchant:FindFirstChild("merchant") and merchant.merchant:FindFirstChild("sell") then
+        local success, errorMessage = pcall(function()
+            merchant.merchant.sell:InvokeServer()
+        end)
+        if success then
+            ShowNotification("ขายปลาตัวเดียวเรียบร้อยแล้ว!")
+        else
+            ShowNotification("เกิดข้อผิดพลาดในการขาย: " .. errorMessage)
+        end
+    else
+        ShowNotification("ไม่พบ Marc Merchant หรือคำสั่งขาย!")
+    end
 end)
