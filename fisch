@@ -1,0 +1,104 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/lime"))()
+
+local w = Library:Window("PNP_HUB V6. PRO")
+
+local Enabled = false
+local Rod = false
+local Progress = false
+local Finished = false
+
+function ShowNotification(String)
+    game:GetService('StarterGui'):SetCore('SendNotification', {
+        Title = 'Alert!',
+        Text = String,
+        Duration = 2
+    })
+end
+
+w:Toggle("Enable Auto Farm", function(v)
+    Enabled = v
+    local Players = game:GetService('Players')
+    local CoreGui = game:GetService('StarterGui')
+    local ReplicatedStorage = game:GetService('ReplicatedStorage')
+    local VirtualInputManager = game:GetService('VirtualInputManager')
+    local GuiService = game:GetService('GuiService')
+
+    local LocalPlayer = Players.LocalPlayer
+
+    if not Enabled then
+        Finished = false
+        Progress = false
+        GuiService.SelectedObject = nil
+        
+        if Rod then
+            Rod.events.reset:FireServer()
+        end
+        
+        ShowNotification("Auto Farm Disabled")
+        return
+    end
+    
+    ShowNotification("Auto Farm Enabled")
+
+    LocalPlayer.Character.ChildAdded:Connect(function(Child)
+        if Child:IsA('Tool') and Child.Name:lower():find('rod') then
+            Rod = Child
+        end
+    end)
+
+    LocalPlayer.Character.ChildRemoved:Connect(function(Child)
+        if Child == Rod then
+            Finished = false
+            Progress = false
+            GuiService.SelectedObject = nil
+            Rod = nil
+        end
+    end)
+
+    LocalPlayer.PlayerGui.DescendantAdded:Connect(function(Descendant)
+        if Descendant.Name == 'button' and Descendant.Parent.Name == 'safezone' then
+            task.wait(0.1)
+            GuiService.SelectedObject = Descendant
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+        elseif Descendant.Name == 'playerbar' and Descendant.Parent.Name == 'bar' then
+            Finished = true
+            Descendant:GetPropertyChangedSignal('Position'):Wait()
+            ReplicatedStorage.events.reelfinished:FireServer(100, true)
+        end
+    end)
+
+    LocalPlayer.PlayerGui.DescendantRemoving:Connect(function(Descendant)
+        if Descendant.Name == 'reel' then
+            Finished = false
+            Progress = false
+        end
+    end)
+
+    coroutine.wrap(function()
+        while Enabled do
+            if not Progress and Rod then
+                Progress = true
+                task.wait(0.5)
+                Rod.events.reset:FireServer()
+                Rod.events.cast:FireServer(100.5)
+            end
+            task.wait()
+        end
+    end)()
+
+    local NewRod = LocalPlayer.Character:FindFirstChildWhichIsA('Tool')
+    if NewRod and NewRod.Name:lower():find('rod') then
+        Rod = NewRod
+    end
+end)
+
+w:Button("Example Button", function()
+    print("Button Pressed!")
+    ShowNotification("Button Pressed!")
+end)
+
+w:Button("Another Button", function()
+    print("Another Button Pressed!")
+    ShowNotification("Another Button Pressed!")
+end)
