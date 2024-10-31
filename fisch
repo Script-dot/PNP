@@ -20,12 +20,13 @@ local function ShowNotification(message)
 end
 
 local Enabled = false
+local CastEnabled = false
 local Rod
 local Progress = false
 local Finished = false
 
 Tab:AddToggle({
-    Name = "Enable Auto Farm",
+    Name = "Auto Farm",
     Default = false,
     Callback = function(v)
         Enabled = v
@@ -44,6 +45,7 @@ Tab:AddToggle({
                 Rod.events.reset:FireServer()
             end
             
+            CastEnabled = false  -- Disable casting when Auto Farm is disabled
             ShowNotification("Auto Farm Disabled")
             return
         end
@@ -87,13 +89,27 @@ Tab:AddToggle({
 
         coroutine.wrap(function()
             while Enabled do
-                if not Progress and Rod then
-                    Progress = true
-                    task.wait(0.5)
-                    Rod.events.reset:FireServer()
-                    Rod.events.cast:FireServer(100.5)
+                -- Handle bait casting
+                if CastEnabled then
+                    local args = {
+                        [1] = 100,
+                        [2] = 1
+                    }
+
+                    local character = LocalPlayer.Character
+                    if character then
+                        for _, obj in pairs(character:GetChildren()) do
+                            if obj:FindFirstChild("events") and obj.events:FindFirstChild("cast") then
+                                obj.events.cast:FireServer(unpack(args))
+                                break
+                            end
+                        end
+                    else
+                        warn("Character not found!")
+                    end
                 end
-                task.wait()
+
+                task.wait(1) -- Adjust wait time as needed
             end
         end)()
 
@@ -104,15 +120,6 @@ Tab:AddToggle({
     end    
 })
 
-Tab:AddButton({
-    Name = "ขายปลาทั้งหมด",
-    Callback = function()
-        workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sellall:InvokeServer()
-    end    
-})
-
-local CastEnabled = false
-
 Tab:AddToggle({
     Name = "หย่อนเหยื่อ",
     Default = false,
@@ -121,21 +128,16 @@ Tab:AddToggle({
         
         if CastEnabled then
             ShowNotification("หย่อนเหยื่อเปิดใช้งาน")
-            
-            coroutine.wrap(function()
-                while CastEnabled do
-                    local args = {
-                        [1] = 92.59999999999997,
-                        [2] = 1
-                    }
-
-                    game:GetService("Players").LocalPlayer.Character:FindFirstChild("Haunted Rod").events.cast:FireServer(unpack(args))
-                    task.wait(1) -- รอ 1 วินาทีก่อนจะหย่อนเหยื่ออีกครั้ง
-                end
-            end)()
         else
             ShowNotification("หย่อนเหยื่อปิดใช้งาน")
         end
+    end    
+})
+
+Tab:AddButton({
+    Name = "ขายปลาทั้งหมด",
+    Callback = function()
+        workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sellall:InvokeServer()
     end    
 })
 
@@ -152,6 +154,7 @@ local WarpTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+-- Warp buttons
 WarpTab:AddButton({
     Name = "Moosewood",
     Callback = function()
