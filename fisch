@@ -1,3 +1,4 @@
+
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 local Window = OrionLib:MakeWindow({Name = "PNP_HUB V6.PRO", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
 
@@ -127,18 +128,47 @@ Tab:AddToggle({
             end
         end)
 
+        -- ลูปที่ทำงานไปเรื่อย ๆ จนกว่า Enable จะถูกปิด
         coroutine.wrap(function()
             while Enabled do
-                if not Progress and Rod then
-                    Progress = true
-                    task.wait(0.5)
-                    Rod.events.reset:FireServer()
-                    CastBait()  -- เรียกใช้ฟังก์ชัน CastBait
+                -- เช็คว่าผู้เล่นถือ Rod หรือไม่
+                if not Rod or not LocalPlayer.Character:FindFirstChild(Rod.Name) then
+                    local backpack = LocalPlayer.Backpack
+                    for _, item in ipairs(backpack:GetChildren()) do
+                        if item:IsA("Tool") and string.find(item.Name, "Rod") then
+                            local args = {
+                                [1] = item
+                            }
+                            -- เรียกใช้ event เพื่อ equip อุปกรณ์
+                            LocalPlayer.PlayerGui.hud.safezone.backpack.events.equip:FireServer(unpack(args))
+                            task.wait(1) -- รอเพื่อให้การ equip เสร็จสมบูรณ์
+                            break
+                        end
+                    end
+                else
+                    -- เช็คว่าเบ็ดได้ถูกโยนหรือยัง
+                    if not Progress then
+                        Progress = true
+                        task.wait(0.5)
+                        Rod.events.reset:FireServer()
+                        
+                        -- เสก bait
+                        local args = {
+                            [1] = 100,
+                            [2] = 1
+                        }
+
+                        if LocalPlayer.Character:FindFirstChild("Haunted Rod") then
+                            LocalPlayer.Character["Haunted Rod"].events.cast:FireServer(unpack(args))
+                        end
+
+                        CastBait()  -- เรียกใช้ฟังก์ชัน CastBait
+                    end
                 end
                 task.wait()
             end
         end)()
-
+        
         local NewRod = LocalPlayer.Character:FindFirstChildWhichIsA('Tool')
         if NewRod and NewRod.Name:lower():find('rod') then
             Rod = NewRod
