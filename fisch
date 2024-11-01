@@ -134,10 +134,20 @@ Tab:AddToggle({
     end    
 })
 
-Tab:AddButton({
+Tab:AddToggle({
     Name = "ขายปลาทั้งหมด",
-    Callback = function()
-        workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sellall:InvokeServer()
+    Default = false,
+    Callback = function(v)
+        if v then
+            coroutine.wrap(function()
+                while v do
+                    workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sellall:InvokeServer()
+                    task.wait(1) 
+                end
+            end)()
+        else
+            ShowNotification("ขายปลาทั้งหมดถูกปิดใช้งาน")
+        end
     end    
 })
 
@@ -154,7 +164,15 @@ local WarpTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Warp buttons
+WarpTab:AddButton({
+    Name = "พ่อค้าขายปลา",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(466.337433, 152.113037, 229.719467, 0.994564652, -0.00128155714, 0.104112342, -1.06857323e-08, 0.999924183, 0.0123085957, -0.104120232, -0.0122416364, 0.994489312)}):Play()
+    end    
+})
+
 WarpTab:AddButton({
     Name = "Moosewood",
     Callback = function()
