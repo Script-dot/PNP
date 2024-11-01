@@ -2,11 +2,10 @@ local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shl
 local Window = OrionLib:MakeWindow({Name = "PNP_HUB V6.PRO", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
 
 local Tab = Window:MakeTab({
-    Name = "Farm",
+    Name = "main",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
-
 local Section = Tab:AddSection({
     Name = "เมนูฟาร์ม"
 })
@@ -20,14 +19,18 @@ local function ShowNotification(message)
     })
 end
 
-local Enabled = false
-local SellEnabled = false -- Variable to track sell status
+local Players = game:GetService('Players')
+local LocalPlayer = Players.LocalPlayer
+local VirtualInputManager = game:GetService('VirtualInputManager')
 
--- Function to cast bait
+local Enabled = false
+local Rod
+local Progress = false
+local Finished = false
+
 local function CastBait()
-    local LocalPlayer = game.Players.LocalPlayer
     local args = {
-        [1] = 100,
+        [1] = 100,  -- ตัวอย่างค่า อาจจะมีการปรับตามความต้องการ
         [2] = 1
     }
 
@@ -40,121 +43,179 @@ local function CastBait()
             end
         end
     else
-        warn("Character not found!")
-    end
-end
-
--- Function to equip the first rod found in the backpack
-local function EquipRod()
-    local LocalPlayer = game.Players.LocalPlayer
-    local backpack = LocalPlayer.Backpack
-
-    while Enabled do
-        local itemToEquip = nil
-        for _, item in pairs(backpack:GetChildren()) do
-            if item:IsA("Tool") and item.Name:lower():find('rod') then
-                itemToEquip = item
-                break
-            end
-        end
-
-        if itemToEquip then
-            local args = { [1] = itemToEquip }
-            LocalPlayer.PlayerGui.hud.safezone.backpack.events.equip:FireServer(unpack(args))
-            ShowNotification("Equipped: " .. itemToEquip.Name)
-            task.wait(10) -- Wait longer to prevent unnecessary checks
-        else
-            task.wait(5) -- Wait before checking again
-        end
-    end
-end
-
--- Function to sell all fish
-local function SellAllFish()
-    local LocalPlayer = game.Players.LocalPlayer
-
-    while SellEnabled do
-        local merchant = workspace.world.npcs:FindFirstChild("Marc Merchant")
-        if merchant and merchant:FindFirstChild("merchant") and merchant.merchant:FindFirstChild("sellall") then
-            merchant.merchant.sellall:InvokeServer()
-            ShowNotification("All fish sold!")
-        else
-            ShowNotification("Merchant not found!")
-            break
-        end
-        task.wait(5) -- Wait before selling again, adjust as needed
+        warn("ไม่พบตัวละคร!")
     end
 end
 
 Tab:AddToggle({
-    Name = "Auto Farm",
+    Name = "Enable Auto Farm",
     Default = false,
     Callback = function(v)
         Enabled = v
-        local LocalPlayer = game.Players.LocalPlayer
+        local GuiService = game:GetService('GuiService')
+        local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
         if not Enabled then
+            Finished = false
+            Progress = false
+            GuiService.SelectedObject = nil
+
+            if Rod then
+                Rod.events.reset:FireServer()
+            end
+
             ShowNotification("Auto Farm Disabled")
-            SellEnabled = false -- Disable selling when auto farm is off
             return
         end
 
         ShowNotification("Auto Farm Enabled")
-        coroutine.wrap(EquipRod)()
 
-        -- Start casting bait continuously
-        coroutine.wrap(function()
-            while Enabled do
-                CastBait()
-                task.wait(3)  -- Adjust wait time between casts as needed
+        -- ค้นหาอุปกรณ์ที่มีคำว่า "Rod" ในชื่อ
+        local backpack = LocalPlayer.Backpack
+        local flimsyRod = nil
+
+        for _, item in ipairs(backpack:GetChildren()) do
+            if item:IsA("Tool") and string.find(item.Name, "Rod") then
+                flimsyRod = item
+                break
             end
-        end)()
-    end
-})
-
--- Add the Sell All Fish toggle
-Tab:AddToggle({
-    Name = "ขายปลาทั้งหมด",
-    Default = false,
-    Callback = function(v)
-        SellEnabled = v
-
-        if not SellEnabled then
-            ShowNotification("Selling Disabled")
-            return
         end
 
-        ShowNotification("Selling Enabled")
-        coroutine.wrap(SellAllFish)() -- Start the sell fish loop
-    end
+        if flimsyRod then
+            local args = {
+                [1] = flimsyRod
+            }
+            -- เรียกใช้ event เพื่อ equip อุปกรณ์
+            LocalPlayer.PlayerGui.hud.safezone.backpack.events.equip:FireServer(unpack(args))
+        else
+            warn("ไม่พบ Rod ใน Backpack")
+            ShowNotification("ไม่พบ Rod ใน Backpack")
+        end
+
+        LocalPlayer.Character.ChildAdded:Connect(function(Child)
+            if Child:IsA('Tool') and Child.Name:lower():find('rod') then
+                Rod = Child
+            end
+        end)
+
+        LocalPlayer.Character.ChildRemoved:Connect(function(Child)
+            if Child == Rod then
+                Finished = false
+                Progress = false
+                GuiService.SelectedObject = nil
+                Rod = nil
+            end
+        end)
+
+        LocalPlayer.PlayerGui.DescendantAdded:Connect(function(Descendant)
+            if Descendant.Name == 'button' and Descendant.Parent.Name == 'safezone' then
+                task.wait(0.1)
+                GuiService.SelectedObject = Descendant
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+            elseif Descendant.Name == 'playerbar' and Descendant.Parent.Name == 'bar' then
+                Finished = true
+                Descendant:GetPropertyChangedSignal('Position'):Wait()
+                ReplicatedStorage.events.reelfinished:FireServer(100, true)
+            end
+        end)
+
+        LocalPlayer.PlayerGui.DescendantRemoving:Connect(function(Descendant)
+            if Descendant.Name == 'reel' then
+                Finished = false
+                Progress = false
+            end
+        end)
+
+        coroutine.wrap(function()
+            while Enabled do
+                if not Progress and Rod then
+                    Progress = true
+                    task.wait(0.5)
+                    Rod.events.reset:FireServer()
+                    CastBait()  -- เรียกใช้ฟังก์ชัน CastBait
+                end
+                task.wait()
+            end
+        end)()
+
+        local NewRod = LocalPlayer.Character:FindFirstChildWhichIsA('Tool')
+        if NewRod and NewRod.Name:lower():find('rod') then
+            Rod = NewRod
+        end
+    end    
 })
 
--- Warp Tab
+Tab:AddButton({
+    Name = "ขายปลาทั้งหมด",
+    Callback = function()
+        workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sellall:InvokeServer()
+    end    
+})
+
+Tab:AddButton({
+    Name = "ขายปลาหนึ่งตัว",
+    Callback = function()
+        workspace.world.npcs:FindFirstChild("Marc Merchant").merchant.sell:InvokeServer()
+    end    
+})
+
 local WarpTab = Window:MakeTab({
     Name = "วาร์ปเกาะ",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
--- Warp buttons
-local warpLocations = {
-    {Name = "Moosewood", CFrame = CFrame.new(500.488434, 147.40181, 219.991364)},
-    {Name = "ที่เอ็นชาตเบ็ด", CFrame = CFrame.new(1294.57568, -807.365051, -307.565216)},
-    {Name = "Roslit", CFrame = CFrame.new(-1510.43311, 129.750626, 615.421875)},
-    {Name = "Snowcap", CFrame = CFrame.new(2671.10767, 148.350555, 2388.95117)},
-    {Name = "Sunstone", CFrame = CFrame.new(-902.682922, 136.266068, -1128.6886)},
-    {Name = "ถ้ำใต้น้ำวน", CFrame = CFrame.new(-78.5218506, -482.720367, 1040.32788)}
-}
+WarpTab:AddButton({
+    Name = "Moosewood",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(500.488434, 147.40181, 219.991364, -0.564704418, 0, -0.825293183, 0, 1, 0, 0.825293183, 0, -0.564704418)}):Play()
+    end    
+})
 
-for _, location in ipairs(warpLocations) do
-    WarpTab:AddButton({
-        Name = location.Name,
-        Callback = function()
-            local Tween = game:GetService("TweenService")
-            Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-            {CFrame = location.CFrame}):Play()
-        end
-    })
-end
+WarpTab:AddButton({
+    Name = "ที่เอ็นชาตเบ็ด",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(1294.57568, -807.365051, -307.565216, 0.0331695676, 0, 0.99944973, 0, 1, 0, -0.99944973, 0, 0.0331695676)}):Play()
+    end    
+})
 
-OrionLib:Init()
+WarpTab:AddButton({
+    Name = "Roslit",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(-1510.43311, 129.750626, 615.421875, -1, 0, 0, 0, 1, 0, 0, 0, -1)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "Snowcap",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(2671.10767, 148.350555, 2388.95117, -0.464032531, -0.044061318, -0.884721994, -0.0204825327, 0.999028802, -0.0390110984, 0.885581613, 1.89337879e-05, -0.464484453)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "Sunstone",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(-902.682922, 136.266068, -1128.6886, 0.939700544, -0, -0.341998369, 0, 1, -0, 0.341998369, 0, 0.939700544)}):Play()
+    end    
+})
+
+WarpTab:AddButton({
+    Name = "ถ้ำใต้น้ำวน",
+    Callback = function()
+        local Tween = game:GetService("TweenService")
+        Tween:Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0),
+        {CFrame = CFrame.new(-78.5218506, -482.720367, 1040.32788, -1, 0, 0, 0, 1, 0, 0, 0, -1)}):Play()
+    end    
+})
